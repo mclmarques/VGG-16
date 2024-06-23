@@ -1,15 +1,26 @@
+from logging import warning
 from __future__ import print_function
 
 import os
+import warnings
 
 import cv2
 import numpy as np
 import pandas as pd
-from keras.api.layers import Flatten, Dense, Input, Conv2D, MaxPooling2D
-from keras.api.models import Model
+from keras.layers import Flatten, Dense, Input, Conv2D, MaxPooling2D, GlobalAveragePooling2D
+from keras.models import Model
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.utils import shuffle
+from keras.preprocessing import image
+from keras.utils import get_file
+# from keras.utils import layer_utils
+from keras import backend as K
+from keras.applications.imagenet_utils import decode_predictions, preprocess_input
+import matplotlib.pyplot as plt
+# from keras import get_source_inputs
+from matplotlib.pyplot import imread
+from matplotlib.pyplot import imshow
 
 
 def img_classification_vgg(input_tensor=None, classes=2):
@@ -94,7 +105,7 @@ def main():
 
     # Load images & pre-processing images
     im_size = 224
-    base_path = "Training_Data/"
+    base_path = 'Training_Data/'
     images = []
     labels = []
     for i in data_classes:
@@ -102,7 +113,12 @@ def main():
         filenames = [i for i in os.listdir(image_path)]
 
         for f in filenames:
-            img = cv2.imread(image_path + '/' + f)
+            img_path = image_path + '/' + f
+            print(f"Loading image from: {img_path}")  # Print the path
+            img = cv2.imread(img_path)
+            if img is None:
+                print("Image not loaded")
+                continue
             img = cv2.resize(img, (im_size, im_size))
             images.append(img)
             labels.append(i)
@@ -133,6 +149,35 @@ def main():
     print(test_y.shape)
 
     model.fit(train_x, train_y, epochs=10, batch_size=32)
+
+    # Evaluating
+    preds = model.evaluate(test_x, test_y)
+    print("Loss = " + str(preds[0]))
+
+    # Testing
+    testing_building_path = 'Testing_Data/building.jpg'
+
+    my_image = imread(testing_building_path)
+    imshow(my_image)
+
+    testing_image_building = image.load_img(testing_building_path, target_size=(224, 224))
+    x = image.img_to_array(testing_image_building)
+    x = np.expand_dims(x, axis=0)
+    x = preprocess_input(x)
+    print('Input image shape:', x.shape)
+    print(model.predict(x))
+
+    testing_forest_path = 'Testing_Data/forest.jpg'
+
+    my_image2 = imread(testing_forest_path)
+    imshow(my_image2)
+
+    testing_image_forest = image.load_img(testing_forest_path, target_size=(224, 224))
+    y = image.img_to_array(testing_image_forest)
+    y = np.expand_dims(y, axis=0)
+    y = preprocess_input(y)
+    print('Input image shape:', y.shape)
+    print(model.predict(y))
 
 
 # The entry point for script execution
